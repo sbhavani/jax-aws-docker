@@ -15,7 +15,7 @@ ENV CUDA_HOME=/usr/local/cuda-12
 #########################
 # Packages and Pre-reqs #
 RUN apt-get update -y && \
-    apt-get purge -y --allow-change-held-packages libmlx5-1 ibverbs-utils libibverbs-dev libibverbs1 libnccl-dev libnccl2
+    apt-get purge -y --allow-change-held-packages libmlx5-1 ibverbs-utils libibverbs-dev libibverbs1
 RUN apt-get install -y --allow-unauthenticated \
     autoconf \
     automake \
@@ -73,3 +73,12 @@ RUN mkdir -p /var/run/sshd \
     && sed -i 's/[ #]\(.*StrictHostKeyChecking \).*/ \1no/g' /etc/ssh/ssh_config \
     && echo "    UserKnownHostsFile /dev/null" >> /etc/ssh/ssh_config \
     && sed -i 's/#\(StrictModes \).*/\1no/g' /etc/ssh/sshd_config
+
+
+## SageMaker related testing
+RUN mkdir -p /opt/ml/code
+COPY train.py /opt/ml/code/train.py
+
+ENV SAGEMAKER_PROGRAM train.py
+
+ENTRYPOINT ["python", "/opt/ml/code/train.py"]
