@@ -1,0 +1,85 @@
+FROM ghcr.io/nvidia/jax:base
+
+ARG EFA_INSTALLER_VERSION=1.29.1
+ARG NCCL_VERSION=v2.21.5-1
+ARG AWS_OFI_NCCL_VERSION=v1.7.4-aws
+ARG JAX_VERSION=0.4.26
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHON_VERSION=3.10
+ENV LD_LIBRARY_PATH=/opt/amazon/openmpi/lib:/opt/nccl/build/lib:/opt/aws-ofi-nccl/install/lib:/usr/local/cuda-12/lib64:$LD_LIBRARY_PATH
+ENV PATH=/opt/amazon/openmpi/bin/:/opt/amazon/efa/bin:/usr/local/cuda-12/bin:$PATH
+ENV CUDA_HOME=/usr/local/cuda-12
+
+
+#########################
+# Packages and Pre-reqs #
+RUN apt-get update -y && \
+    apt-get purge -y --allow-change-held-packages libmlx5-1 ibverbs-utils libibverbs-dev libibverbs1
+RUN apt-get install -y --allow-unauthenticated \
+    autoconf \
+    automake \
+    bash \
+    build-essential \
+    ca-certificates \
+    curl \
+    debianutils \
+    dnsutils \
+    g++ \
+    git \
+    libtool \
+    libhwloc-dev \
+    netcat \
+    openssh-client \
+    openssh-server \
+    openssl \
+    python3-distutils \
+    python"${PYTHON_VERSION}"-dev \
+    python-is-python3 \
+    util-linux
+
+RUN update-ca-certificates
+
+######################################
+# dep of EFA installer
+#TODO: document all packages removed by EFA installer
+
+# Must remove existing packages to avoid issues.
+RUN apt-get remove -y --allow-change-held-packages libibumad3 libibumad-dev
+
+# Install EFA Libfabric and Open MPI #
+RUN cd /tmp \
+    && curl -O https://efa-installer.amazonaws.com/aws-efa-installer-${EFA_INSTALLER_VERSION}.tar.gz \
+    && tar -xf aws-efa-installer-${EFA_INSTALLER_VERSION}.tar.gz \
+    && cd aws-efa-installer \
+    && ./efa_installer.sh -y -d --skip-kmod --skip-limit-conf --no-verify
+
+###############################
+# Compile AWS OFI NCCL Plugin #
+RUN git clone -b "${AWS_OFI_NCCL_VERSION}" https://github.com/aws/aws-ofi-nccl.git /opt/aws-ofi-nccl \
+    && cd /opt/aws-ofi-nccl \
+    && ./autogen.sh \
+    && ./configure --prefix=/opt/aws-ofi-nccl/install \
+       --with-libfabric=/opt/amazon/efa/ \
+       --with-cuda=${CUDA_HOME} \
+       --with-mpi=/opt/amazon/openmpi/ \
+       --with-nccl=/opt/nccl/build \
+       --enable-platform-aws \
+    && make -j && make install
+
+#####################################
+# Allow unauthenticated SSH for MPI #
+RUN mkdir -p /var/run/sshd \
+    && sed -i 's/[ #]\(.*StrictHostKeyChecking \).*/ \1no/g' /etc/ssh/ssh_config \
+    && echo "    UserKnownHostsFile /dev/null" >> /etc/ssh/ssh_config \
+    && sed -i 's/#\(StrictModes \).*/\1no/g' /etc/ssh/sshd_config
+
+## SageMaker related testing
+RUN pip install torch deepspeed
+RUN mkdir -p /opt/ml/code
+WORKDIR /opt/ml/code
+RUN git clone https://github.com/EleutherAI/cookbook
+COPY test-allreduce.sh /opt/ml/code/test-allreduce.sh
+ENV SAGEMAKER_PROGRAM test-allreduce.sh
+
+ENTRYPOINT ["bash", "/opt/ml/code/test-allreduce.sh"]
