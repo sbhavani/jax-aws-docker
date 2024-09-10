@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/jax:24.04-py3 # NGC JAX image
+FROM nvcr.io/nvidia/jax:24.04-py3
 
 ARG EFA_INSTALLER_VERSION=1.29.1
 ARG NCCL_VERSION=v2.21.5-1
