@@ -1,4 +1,0 @@
-FROM nvcr.io/nvidia/pytorch:24.08-py3
-
-COPY aws-install.sh /workspace
-RUN /workspace/aws-install.sh
