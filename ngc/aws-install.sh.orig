@@ -1,7 +1,7 @@
 #!/bin/bash
 
-export EFA_INSTALLER_VERSION=1.32.0
-export AWS_OFI_NCCL_VERSION=v1.11.x-aws
+export EFA_INSTALLER_VERSION=latest
+export AWS_OFI_NCCL_VERSION=aws
 
 cd /tmp && curl -O https://efa-installer.amazonaws.com/aws-efa-installer-${EFA_INSTALLER_VERSION}.tar.gz  && tar -xf aws-efa-installer-${EFA_INSTALLER_VERSION}.tar.gz \
 && cd aws-efa-installer && (cd DEBS/UBUNTU2204/x86_64/ && rm -rf debug/* ibacm* libib[umn]* infiniband* librdma* openmpi*)  && apt-get purge -y ibverbs-providers libibverbs-dev libibverbs1 \

@@ -5,15 +5,16 @@ RUN apt-get update && apt install autoconf automake libtool -y
 
 # AWS deps
 COPY aws-install.sh /workspace
+RUN apt install libhwloc-dev -y
 RUN chmod u+x /workspace/aws-install.sh
 RUN /workspace/aws-install.sh
 
 ## SageMaker related testing
-RUN pip install torch deepspeed
+#RUN pip install torch deepspeed
 RUN mkdir -p /opt/ml/code
 WORKDIR /opt/ml/code
 RUN git clone https://github.com/EleutherAI/cookbook
 COPY test-allreduce.sh /opt/ml/code/test-allreduce.sh
 ENV SAGEMAKER_PROGRAM test-allreduce.sh
 
-ENTRYPOINT ["bash", "/opt/ml/code/test-allreduce.sh"]
+#ENTRYPOINT ["bash", "/opt/ml/code/test-allreduce.sh"]
