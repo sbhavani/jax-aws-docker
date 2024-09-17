@@ -1,0 +1,4 @@
+You need to authenticate to pull an image from an Amazon Elastic Container Registry (ECR) repository.
+
+1. snap install aws-cli --classic
+2. aws configure
