@@ -8,4 +8,4 @@ RUN git clone https://github.com/EleutherAI/cookbook
 COPY test-allreduce.sh /opt/ml/code/test-allreduce.sh
 ENV SAGEMAKER_PROGRAM test-allreduce.sh
 
-#ENTRYPOINT ["bash", "/opt/ml/code/test-allreduce.sh"]
+ENTRYPOINT ["bash", "/opt/ml/code/test-allreduce.sh"]
